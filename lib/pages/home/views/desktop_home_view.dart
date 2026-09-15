@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../features/github_repository/github_repository.dart';
 import '../../../features/sample_action/sample_action.dart';
 import '../../../shared/shared.dart';
 
@@ -81,7 +82,13 @@ class DesktopHomeView extends StatelessWidget {
                 // Left Column: Interactive Action Slice
                 const Expanded(
                   flex: 6,
-                  child: ActionTriggerCard(),
+                  child: Column(
+                    children: [
+                      GithubRepositoryCard(),
+                      SizedBox(height: AppTokens.spaceMd),
+                      ActionTriggerCard(),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(width: AppTokens.spaceLg),

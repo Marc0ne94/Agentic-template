@@ -1,6 +1,7 @@
 import 'dart:ui' show DisplayFeatureType;
 
 import 'package:flutter/material.dart';
+import '../../../features/github_repository/github_repository.dart';
 import '../../../features/sample_action/sample_action.dart';
 import '../../../shared/shared.dart';
 
@@ -183,6 +184,8 @@ class _DetailPane extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppTokens.spaceLg),
       children: const [
+        GithubRepositoryCard(),
+        SizedBox(height: AppTokens.spaceMd),
         ActionTriggerCard(),
       ],
     );

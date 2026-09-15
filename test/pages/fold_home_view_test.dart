@@ -1,5 +1,6 @@
 import 'dart:ui' show DisplayFeature, DisplayFeatureState, DisplayFeatureType;
 
+import 'package:agentic_template/features/github_repository/github_repository.dart';
 import 'package:agentic_template/pages/home/views/fold_home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,12 @@ Future<void> _pumpFoldView(
 
   await tester.pumpWidget(
     ProviderScope(
+      overrides: [
+        githubRepositoryProvider.overrideWith((ref) async => const GithubRepository(
+          fullName: 'Cris92bb/Agentic-template', description: null,
+          stars: 42, pushedAt: null,
+        )),
+      ],
       child: MaterialApp(
         home: Builder(
           builder: (context) => MediaQuery(

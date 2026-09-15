@@ -66,6 +66,31 @@ Installs `app.desktop` and the app icon for the current user, pointing at this c
 
 ---
 
+## GitHub integration example
+
+Overview includes a live card for `Cris92bb/Agentic-template`: description,
+stars, last push, loading, error recovery and manual refresh. The watch uses a
+compact, scrollable card. Public repository metadata needs no token; GitHub's
+unauthenticated limit is 60 requests per hour per IP, so the example does not poll.
+
+The complete slice lives in `lib/features/github_repository/`:
+
+- `api/github_repository_client.dart`: one HTTPS request, timeout and readable errors.
+- `model/github_repository.dart`: converts the response into the fields the UI needs.
+- `state/github_repository_provider.dart`: owns the client and keeps data across layout changes.
+- `ui/github_repository_card.dart`: renders the states using the existing palette and card.
+
+To adapt this example, change the repository path in the client. For another
+service, update the request and model together, then the card's displayed fields.
+Keep credentials out of the app source. Tests replace the HTTP client or provider,
+so they exercise success, failures and retry without network access:
+
+```bash
+flutter test test/features/github_repository_provider_test.dart test/features/github_repository_card_test.dart
+```
+
+API reference: [Get a repository](https://docs.github.com/en/rest/repos/repos#get-a-repository).
+
 ## 🏛️ Architecture: Feature-Sliced Design (FSD v2.1)
 
 The codebase is organized into strict hierarchical layers:

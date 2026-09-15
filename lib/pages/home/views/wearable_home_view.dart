@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../features/github_repository/github_repository.dart';
 import '../../../features/sample_action/sample_action.dart';
 import '../../../shared/shared.dart';
 
@@ -20,16 +21,15 @@ class WearableHomeView extends ConsumerWidget {
       body: Center(
         child: Padding(
           padding: circularPadding,
-          // Scale the glanceable content down on small watch faces instead of
-          // overflowing the safe circular area.
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+          // Keep touch targets readable while scrolling inside the circular inset.
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Watch Glanceable Header
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Icon(
                       Icons.watch_rounded,
@@ -103,6 +103,8 @@ class WearableHomeView extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: AppTokens.spaceMd),
+                const GithubRepositoryCard(compact: true),
               ],
             ),
           ),

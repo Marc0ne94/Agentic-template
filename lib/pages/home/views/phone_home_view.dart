@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/github_repository/github_repository.dart';
 import '../../../features/sample_action/sample_action.dart';
 import '../../../shared/shared.dart';
 
@@ -54,6 +55,9 @@ class PhoneHomeView extends StatelessWidget {
           ),
         ),
 
+        const SizedBox(height: AppTokens.spaceMd),
+
+        const GithubRepositoryCard(),
         const SizedBox(height: AppTokens.spaceMd),
 
         // Action feature card
