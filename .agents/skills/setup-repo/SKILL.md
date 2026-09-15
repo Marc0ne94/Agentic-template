@@ -20,10 +20,12 @@ This skill guides agents and developers through verifying prerequisites, install
 > This repository ships with an **In-App Device Simulator** (accessible via the header button or Settings) that can simulate and render:
 > - ⌚ **Wearable (Wear OS)**: 220×220 circular frame with safe circular padding
 > - 📱 **Smartphone**: 390×780 portrait mobile viewport
-> - 📖 **Foldable / Tablet**: 720×760 dual-pane layout split along the hinge
+> - 📖 **Foldable / Tablet**: 720×760 dual-pane viewport preview
 > - 🖥️ **Desktop & Web**: 1280×800 adaptive layout with navigation rail
 >
 > Therefore, the **minimal development environment** requires having **EITHER Web (Chrome / web-server) OR Host Native Desktop (Linux GTK / Windows C++)** working. Once either is running, you can test and develop for all four form factors directly!
+
+The simulator changes the viewport and clears physical display features. Validate real hinge behavior, system insets, and platform integrations separately on the target device; a simulated foldable does not provide a physical hinge.
 
 --------------------------------------------------------------------------------
 
@@ -42,6 +44,14 @@ bash .agents/skills/setup-repo/scripts/setup_check.sh --fix
 bash .agents/skills/setup-repo/scripts/setup_check.sh --verify
 ```
 
+On Windows, use **Git Bash** for this script; Flutter commands can also be run from PowerShell. A successful diagnostic requires working Flutter/Dart commands, resolved project packages, and at least one enabled development target. Native desktop toolchain warnings do not block an otherwise usable Web environment. A failed automatic fix is reported as an error.
+
+When modifying the inspector, run its isolated regression tests as well:
+
+```bash
+bash test/tool/setup_check_test.sh
+```
+
 --------------------------------------------------------------------------------
 
 ## 3. Step-by-Step Manual Setup Workflow
@@ -56,7 +66,7 @@ uname -m
 ```
 - **Linux**: Target runner is **Linux Desktop** (`-d linux`) or **Web** (`-d chrome`).
 - **Windows**: Target runner is **Windows Desktop** (`-d windows`) or **Web** (`-d chrome`).
-- **macOS**: Target runner is **macOS Desktop** (`-d macos`) or **Web** (`-d chrome`).
+- **macOS**: Use **Web** (`-d chrome` or `-d web-server`). This checkout does not include a `macos/` native runner; native macOS support would need to be added and validated first.
 
 ---
 

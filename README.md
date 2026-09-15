@@ -2,6 +2,12 @@
 
 A clean, modular Flutter template designed from first principles for **AI agentic pair-programming** and modern multi-device applications, based on architectural patterns from [Pin](https://github.com/cris92bb/Pin).
 
+### What "agentic" means here
+
+This is a **Flutter development kit for working with AI coding assistants**. The kit combines a runnable UI sample, reusable components, architecture rules, an environment setup skill, and automated checks. The agent instructions guide development in your editor; the sample app demonstrates layouts, navigation, preferences, and local state. An agent execution service or an LLM integration would be an application feature to build on top of this foundation.
+
+See the [development kit review](docs/development-kit-review.md) for verified capabilities, fixes, and remaining improvement areas.
+
 It follows **Feature-Sliced Design (FSD v2.1)**, checked automatically by an import scanner and tests, and ships responsive layouts for:
 - ⌚ **Wearable**: circular watch displays with safe insets and a glanceable UI
 - 📱 **Smartphone**: single-column layout with bottom navigation and 44×44 touch targets
@@ -17,6 +23,9 @@ What's new in 2.0: see [CHANGELOG.md](CHANGELOG.md).
 
 ### 1. Check Environment & Prerequisites
 Audit host OS, Git, Flutter/Dart SDKs, desktop/web build toolchains, and packages:
+
+On Windows, run this diagnostic script in **Git Bash**. The `flutter` and `dart` commands below also work directly in PowerShell once the Flutter SDK is on PATH.
+
 ```bash
 bash .agents/skills/setup-repo/scripts/setup_check.sh
 
@@ -88,7 +97,7 @@ $$\text{app} \succ \text{pages} \succ \text{widgets} \succ \text{features} \succ
 - Slices in the same layer (e.g., two `features` or two `entities`) **never** import each other directly.
 - Code outside a slice imports it **only** through its public barrel (`<slice>/<slice>.dart`). `app` and `shared` are split into segments instead of slices; `shared` is consumed through `shared/shared.dart`.
 
-All three rules are enforced by `tool/verify_fsd.dart` (a line-based scan of `import` and `export` directives) and by `test/architecture/fsd_architecture_test.dart`.
+All three rules are checked by `tool/verify_fsd.dart`, using the Dart parser to inspect `import` and `export` directives, including conditional alternatives. The auditor reads the package name from `pubspec.yaml`, so internal `package:` imports remain checked after renaming the template. `test/architecture/fsd_architecture_test.dart` exercises both the application and regression fixtures.
 
 ---
 
@@ -147,9 +156,14 @@ flutter test
 
 # Run architecture boundary audit specifically
 flutter test test/architecture/fsd_architecture_test.dart
+
+# Check setup behavior with isolated SDK/toolchain stubs (Git Bash on Windows)
+bash test/tool/setup_check_test.sh
 ```
 
 The suite covers the FSD auditor rules, breakpoints, settings persistence, the theme toggle, the device simulator, navigation and shortcuts, the hinge-aware foldable layout, and layout overflows across tiers.
+
+The setup regression suite exercises missing and failing prerequisites, failed automatic fixes, and Web-only development without a native desktop toolchain. CI runs it on Linux and Windows. It does not download SDKs or alter the host's Git/Flutter configuration.
 
 ---
 

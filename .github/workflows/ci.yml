@@ -6,6 +6,17 @@ on:
   pull_request:
 
 jobs:
+  setup-regressions:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup script regression tests
+        shell: bash
+        run: bash test/tool/setup_check_test.sh
+
   verify:
     runs-on: ubuntu-latest
     steps:

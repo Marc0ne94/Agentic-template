@@ -18,7 +18,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 DIR="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd))"
-cd "$DIR"
+cd "$DIR" || exit 1
 
 AUTO_FIX=false
 RUN_VERIFY=false
@@ -137,9 +137,14 @@ if command -v git >/dev/null 2>&1; then
       warn "Git pre-commit hook is NOT configured."
       if [ "$AUTO_FIX" = true ]; then
         info "Configuring Git hooks path to .githooks..."
-        git config core.hooksPath .githooks
-        chmod +x "$DIR/.githooks/pre-commit" 2>/dev/null || true
-        pass "Git pre-commit hook activated."
+        if [ -f "$DIR/.githooks/pre-commit" ] &&
+           git config core.hooksPath .githooks &&
+           chmod +x "$DIR/.githooks/pre-commit" &&
+           [ -x "$DIR/.githooks/pre-commit" ]; then
+          pass "Git pre-commit hook activated."
+        else
+          fail "Could not activate Git pre-commit hook. Check .githooks/pre-commit and repository permissions."
+        fi
       else
         info "Run to activate hook: git config core.hooksPath .githooks"
       fi
@@ -157,19 +162,31 @@ echo ""
 # ------------------------------------------------------------------------------
 echo -e "${BOLD}3. Flutter & Dart SDK${NC}"
 FLUTTER_OK=false
+DART_OK=false
+DOCTOR_OUTPUT=""
 if command -v flutter >/dev/null 2>&1; then
   FLUTTER_PATH="$(command -v flutter)"
-  FLUTTER_VER="$(flutter --version 2>&1 | head -n 1)"
-  pass "Flutter installed: $FLUTTER_VER"
-  info "Flutter path: $FLUTTER_PATH"
-  FLUTTER_OK=true
+  if FLUTTER_VER="$(flutter --version 2>&1)"; then
+    pass "Flutter installed: ${FLUTTER_VER%%$'\n'*}"
+    info "Flutter path: $FLUTTER_PATH"
+    FLUTTER_OK=true
+    # Doctor may report unrelated Android/iOS issues. Inspect each relevant
+    # section below instead of treating its aggregate exit status as readiness.
+    DOCTOR_OUTPUT="$(flutter doctor -v 2>&1)" || true
+  else
+    fail "Flutter SDK was found but 'flutter --version' failed."
+  fi
 else
   fail "Flutter SDK not found in PATH. Install Flutter: https://docs.flutter.dev/get-started/install"
 fi
 
 if command -v dart >/dev/null 2>&1; then
-  DART_VER="$(dart --version 2>&1)"
-  pass "Dart installed: $DART_VER"
+  if DART_VER="$(dart --version 2>&1)"; then
+    pass "Dart installed: $DART_VER"
+    DART_OK=true
+  else
+    fail "Dart SDK was found but 'dart --version' failed."
+  fi
 else
   fail "Dart SDK not found in PATH."
 fi
@@ -190,7 +207,7 @@ if [ "$IS_LINUX" = true ]; then
     COMPILER="$(command -v clang || command -v gcc)"
     pass "C++ Compiler: $COMPILER"
   else
-    fail "C++ Compiler (clang or gcc) not found."
+    warn "C++ Compiler (clang or gcc) not found (needed for Linux Desktop)."
     LINUX_TOOLS_OK=false
     MISSING_LINUX_PKGS+=("clang")
   fi
@@ -199,7 +216,7 @@ if [ "$IS_LINUX" = true ]; then
     CMAKE_VER="$(cmake --version | head -n 1)"
     pass "CMake: $CMAKE_VER"
   else
-    fail "CMake is not installed."
+    warn "CMake is not installed (needed for Linux Desktop)."
     LINUX_TOOLS_OK=false
     MISSING_LINUX_PKGS+=("cmake")
   fi
@@ -208,7 +225,7 @@ if [ "$IS_LINUX" = true ]; then
     NINJA_CMD="$(command -v ninja || command -v ninja-build)"
     pass "Ninja build tool: $NINJA_CMD"
   else
-    fail "Ninja is not installed."
+    warn "Ninja is not installed (needed for Linux Desktop)."
     LINUX_TOOLS_OK=false
     MISSING_LINUX_PKGS+=("ninja-build")
   fi
@@ -219,12 +236,12 @@ if [ "$IS_LINUX" = true ]; then
       GTK_VER="$(pkg-config --modversion gtk+-3.0)"
       pass "GTK 3 headers found: version $GTK_VER"
     else
-      fail "GTK 3 development headers (libgtk-3-dev) missing."
+      warn "GTK 3 development headers (libgtk-3-dev) missing (needed for Linux Desktop)."
       LINUX_TOOLS_OK=false
       MISSING_LINUX_PKGS+=("libgtk-3-dev")
     fi
   else
-    fail "pkg-config is not installed."
+    warn "pkg-config is not installed (needed for Linux Desktop)."
     LINUX_TOOLS_OK=false
     MISSING_LINUX_PKGS+=("pkg-config" "libgtk-3-dev")
   fi
@@ -233,7 +250,7 @@ if [ "$IS_LINUX" = true ]; then
     NATIVE_DESKTOP_READY=true
     pass "Linux Desktop toolchain is fully ready!"
   else
-    fail "Linux Desktop dependencies incomplete."
+    warn "Linux Desktop dependencies incomplete; Web can still satisfy the minimal environment."
     if [ -f /etc/debian_version ]; then
       info "Suggested fix for Debian/Ubuntu:"
       info "  sudo apt update && sudo apt install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev"
@@ -247,15 +264,17 @@ if [ "$IS_LINUX" = true ]; then
   fi
 elif [ "$IS_WINDOWS" = true ]; then
   info "Checking Windows Desktop requirements (Visual Studio C++ build tools)..."
-  if command -v cl >/dev/null 2>&1 || [ -d "C:/Program Files/Microsoft Visual Studio" ] || [ -d "C:/Program Files (x86)/Microsoft Visual Studio" ]; then
-    pass "Visual Studio toolchain detected."
+  if printf '%s\n' "$DOCTOR_OUTPUT" | grep -Eq '^[[:space:]]*\[(✓|√)\] Visual Studio - develop Windows apps'; then
+    pass "Visual Studio toolchain verified by Flutter doctor."
     NATIVE_DESKTOP_READY=true
   else
-    warn "Visual Studio with Desktop development with C++ workload not found in PATH."
+    warn "Flutter doctor did not confirm a complete Visual Studio C++ toolchain."
     info "To install on Windows: winget install Microsoft.VisualStudio.2022.BuildTools --override \"--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended\""
   fi
 elif [ "$IS_MACOS" = true ]; then
-  if command -v xcodebuild >/dev/null 2>&1; then
+  if [ ! -d "$DIR/macos" ]; then
+    warn "This project has no macOS desktop runner; use Web on this host."
+  elif command -v xcodebuild >/dev/null 2>&1; then
     pass "Xcode detected for macOS desktop."
     NATIVE_DESKTOP_READY=true
   else
@@ -307,9 +326,14 @@ echo ""
 # 6. Flutter Platform Configuration
 # ------------------------------------------------------------------------------
 echo -e "${BOLD}6. Flutter Platform Configuration & Target Devices${NC}"
+NATIVE_PLATFORM_ENABLED=false
+WEB_PLATFORM_ENABLED=false
 if [ "$FLUTTER_OK" = true ]; then
-  DOCTOR_FLAGS="$(flutter doctor -v 2>&1 | grep -i 'Feature flags:' || true)"
-  DEVICES_OUTPUT="$(flutter devices 2>&1 || true)"
+  DOCTOR_FLAGS="$(printf '%s\n' "$DOCTOR_OUTPUT" | grep -i 'Feature flags:' || true)"
+  if ! DEVICES_OUTPUT="$(flutter devices 2>&1)"; then
+    warn "Could not query Flutter target devices; checking platform flags only."
+    DEVICES_OUTPUT=""
+  fi
   
   check_platform_enabled() {
     local platform_name="$1"
@@ -317,32 +341,47 @@ if [ "$FLUTTER_OK" = true ]; then
     local enable_cmd="$3"
     local device_id="$4"
 
-    if echo "$DOCTOR_FLAGS" | grep -q "$flag_name" || echo "$DEVICES_OUTPUT" | grep -q "$device_id"; then
+    if printf '%s\n' "$DOCTOR_FLAGS" | grep -Eq "(^|[[:space:],:])$flag_name([[:space:],]|$)" ||
+       printf '%s\n' "$DEVICES_OUTPUT" | grep -Eq "•[[:space:]]*$device_id[[:space:]]*•"; then
       pass "$platform_name support is enabled."
+      return 0
     else
       warn "$platform_name is NOT enabled or device runner missing."
       if [ "$AUTO_FIX" = true ]; then
         info "Enabling $flag_name..."
-        flutter config "$enable_cmd"
-        pass "$flag_name enabled successfully."
+        if flutter config "$enable_cmd"; then
+          pass "$flag_name enabled successfully."
+          return 0
+        else
+          fail "Could not enable $flag_name."
+        fi
       else
         info "Run to enable: flutter config $enable_cmd"
       fi
+      return 1
     fi
   }
 
   if [ "$IS_LINUX" = true ]; then
-    check_platform_enabled "Linux Desktop" "enable-linux-desktop" "--enable-linux-desktop" "linux"
+    if check_platform_enabled "Linux Desktop" "enable-linux-desktop" "--enable-linux-desktop" "linux"; then
+      NATIVE_PLATFORM_ENABLED=true
+    fi
   fi
   if [ "$IS_WINDOWS" = true ]; then
-    check_platform_enabled "Windows Desktop" "enable-windows-desktop" "--enable-windows-desktop" "windows"
+    if check_platform_enabled "Windows Desktop" "enable-windows-desktop" "--enable-windows-desktop" "windows"; then
+      NATIVE_PLATFORM_ENABLED=true
+    fi
   fi
-  check_platform_enabled "Web" "enable-web" "--enable-web" "chrome"
+  if [ "$IS_MACOS" = true ] && [ -d "$DIR/macos" ]; then
+    if check_platform_enabled "macOS Desktop" "enable-macos-desktop" "--enable-macos-desktop" "macos"; then
+      NATIVE_PLATFORM_ENABLED=true
+    fi
+  fi
+  if check_platform_enabled "Web" "enable-web" "--enable-web" "chrome"; then
+    WEB_PLATFORM_ENABLED=true
+  fi
 
-  info "Available Flutter target devices:"
-  echo "$DEVICES_OUTPUT" | grep -E "•.*•" | while read -r line; do
-    echo -e "    ${CYAN}→${NC} $line"
-  done
+  info "Target availability checked; connected device identifiers are omitted."
 else
   fail "Cannot inspect Flutter config because Flutter is not available."
 fi
@@ -352,17 +391,27 @@ echo ""
 # 7. Project Dart Dependencies
 # ------------------------------------------------------------------------------
 echo -e "${BOLD}7. Project Dependencies (Pub Packages)${NC}"
+DEPENDENCIES_READY=false
 if [ -f "$DIR/pubspec.yaml" ]; then
   pass "pubspec.yaml present."
   
   if [ -f "$DIR/.dart_tool/package_config.json" ]; then
     pass "Package configuration (.dart_tool/package_config.json) exists."
+    DEPENDENCIES_READY=true
   else
     warn "Dependencies not resolved yet (.dart_tool/package_config.json missing)."
     if [ "$AUTO_FIX" = true ] && [ "$FLUTTER_OK" = true ]; then
       info "Running 'flutter pub get'..."
-      flutter pub get
-      pass "'flutter pub get' completed."
+      if flutter pub get; then
+        if [ -f "$DIR/.dart_tool/package_config.json" ]; then
+          pass "'flutter pub get' completed and generated package configuration."
+          DEPENDENCIES_READY=true
+        else
+          fail "'flutter pub get' returned success but package configuration is missing."
+        fi
+      else
+        fail "'flutter pub get' failed; project dependencies are not ready."
+      fi
     else
       info "Run: flutter pub get"
     fi
@@ -382,24 +431,27 @@ echo -e "   Therefore, having EITHER Native Desktop OR Web is sufficient to deve
 echo ""
 
 MINIMAL_ENV_SATISFIED=false
-if [ "$NATIVE_DESKTOP_READY" = true ]; then
-  pass "Native Desktop runner is ready! You can run: 'flutter run -d linux' (or -d windows)"
-  MINIMAL_ENV_SATISFIED=true
-fi
+if [ "$FLUTTER_OK" = true ] && [ "$DART_OK" = true ] &&
+   [ "$DEPENDENCIES_READY" = true ] && [ "$TOTAL_ERRORS" -eq 0 ]; then
+  if [ "$NATIVE_DESKTOP_READY" = true ] && [ "$NATIVE_PLATFORM_ENABLED" = true ]; then
+    pass "Native Desktop prerequisites are ready for the host platform."
+    MINIMAL_ENV_SATISFIED=true
+  fi
 
-if [ "$WEB_READY" = true ]; then
-  pass "Web runner is ready! You can run: 'flutter run -d chrome' or 'flutter run -d web-server'"
-  MINIMAL_ENV_SATISFIED=true
+  if [ "$WEB_READY" = true ] && [ "$WEB_PLATFORM_ENABLED" = true ]; then
+    pass "Web prerequisites are ready. Run: 'flutter run -d web-server' (or -d chrome if installed)."
+    MINIMAL_ENV_SATISFIED=true
+  fi
 fi
 
 if [ "$MINIMAL_ENV_SATISFIED" = true ]; then
   echo ""
   echo -e "${GREEN}${BOLD}✓ SUCCESS: Minimal development environment criteria MET!${NC}"
-  echo -e "You can launch the app and test all 4 form-factor tiers using the in-app device switcher."
+  echo -e "Prerequisite checks passed. Launch the app to verify the runner and in-app device switcher."
 else
   echo ""
   echo -e "${RED}${BOLD}✗ FAILED: Minimal development environment criteria NOT MET.${NC}"
-  echo -e "Please install missing Linux desktop packages or Google Chrome / Chromium."
+  echo -e "Resolve the reported errors, check Flutter/Dart and project packages, and enable Web or a complete host desktop toolchain."
   TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
 fi
 echo ""
@@ -409,13 +461,12 @@ echo ""
 # ------------------------------------------------------------------------------
 if [ "$RUN_VERIFY" = true ]; then
   echo -e "${BOLD}9. Architecture & Test Verification Suite${NC}"
-  if [ "$FLUTTER_OK" = true ]; then
+  if [ "$FLUTTER_OK" = true ] && [ "$DART_OK" = true ] && [ "$DEPENDENCIES_READY" = true ]; then
     info "Running FSD v2.1 architectural audit..."
     if dart run tool/verify_fsd.dart --strict; then
       pass "FSD architecture audit passed with 0 violations!"
     else
       fail "FSD architecture audit failed."
-      TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
     fi
 
     info "Running Flutter test suite..."
@@ -423,10 +474,9 @@ if [ "$RUN_VERIFY" = true ]; then
       pass "All Flutter unit and widget tests passed!"
     else
       fail "Flutter tests failed."
-      TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
     fi
   else
-    fail "Cannot run verification suite: Flutter/Dart unavailable."
+    fail "Cannot run verification suite: Flutter/Dart or project dependencies unavailable."
   fi
   echo ""
 fi

@@ -23,7 +23,7 @@ The repository includes an **in-app device simulator** (`Auto Detect`, `Watch (W
 
 > [!TIP]
 > **You do NOT need an Android phone, Wear OS smartwatch, emulator, or Xcode** to build and test features for all four tiers.
-> Having **either Web or host Native Desktop** installed and working provides 100% functional testability of the entire UI and architecture!
+> Having **either Web or host Native Desktop** installed and working lets you preview all four layouts and run the architecture and widget tests. Device simulation changes the viewport; platform integrations, system insets, accessibility settings, and physical hinge behavior also need validation on the target platform.
 
 ---
 
@@ -31,7 +31,7 @@ The repository includes an **in-app device simulator** (`Auto Detect`, `Watch (W
 
 ### Core Tooling (All Platforms)
 - **Git**: `>= 2.20`
-- **Flutter SDK**: `>= 3.13.2` (channel `stable` recommended, CI runs `3.47.4`)
+- **Flutter SDK**: use `3.47.4` to match CI, or a compatible SDK that includes Dart satisfying `^3.13.2`.
 - **Dart SDK**: bundled with Flutter (`sdk: ^3.13.2`)
 
 ---

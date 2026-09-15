@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **FSD audit**: inspect parsed import/export directives and all conditional alternatives, ignore comments and strings, and resolve internal package imports after template renaming.
+- **Setup diagnostics**: propagate failed SDK, dependency and configuration commands; require working prerequisites before reporting an available development target.
+
+### Added
+- Regression coverage for architecture-check blind spots and setup failures.
+- A development-kit review documenting executed checks and remaining UI issues.
+
+### Clarified
+- The kit's agent instructions guide development; the running app demonstrates Flutter UI and state-management patterns.
+- Flutter and Dart version requirements, Git Bash usage on Windows, and the scope of device simulation.
+
 ## 2.0.0
 
 ### Fixed

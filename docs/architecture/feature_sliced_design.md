@@ -69,6 +69,6 @@ graph TD
 ## 4. Automated Architecture Enforcement
 
 To ensure AI agents and contributors strictly adhere to FSD:
-- **CLI import scanner**: `dart run tool/verify_fsd.dart --strict` scans every `import` and `export` directive in `lib/` (line-based, not a full AST parse) and reports upward layer imports, cross-slice imports and deep imports that bypass a public barrel. Without `--strict` it only prints the report.
+- **CLI import scanner**: `dart run tool/verify_fsd.dart --strict` parses Dart `import` and `export` directives in `lib/`, including conditional alternatives, and reports upward layer imports, cross-slice imports and deep imports that bypass a public barrel. Comments and string contents are not directives. The project package name comes from `pubspec.yaml`, so renaming the template preserves checks on internal `package:` imports. Without `--strict` it only prints the report.
 - **Automated test**: `flutter test test/architecture/fsd_architecture_test.dart` runs the same auditor, plus fixture tests proving each rule fires.
 - **CI**: `.github/workflows/ci.yml` runs the audit, `flutter analyze` and `flutter test` on every push to `main` and on pull requests.
