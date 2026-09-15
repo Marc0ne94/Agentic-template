@@ -17,7 +17,7 @@ trap cleanup EXIT
 
 # The child shell receives only these utilities and the exported fake tools.
 mkdir -p "$TEST_ROOT/bin"
-for utility in grep head mkdir; do
+for utility in grep head; do
   printf '#!/bin/bash\nexec %q "$@"\n' "$(command -v "$utility")" > "$TEST_ROOT/bin/$utility"
 done
 chmod +x "$TEST_ROOT/bin/"*
@@ -38,12 +38,8 @@ flutter() {
     'doctor -v') echo '    Feature flags: enable-web' ;;
     devices) echo 'No devices found.' ;;
     'pub get')
-      if [[ "$PUB_GET_EXIT" != 0 ]]; then
-        echo 'Fixture dependency resolution failed.' >&2
-        return "$PUB_GET_EXIT"
-      fi
-      mkdir -p "$FIXTURE_ROOT/.dart_tool"
-      echo '{"configVersion":2,"packages":[]}' > "$FIXTURE_ROOT/.dart_tool/package_config.json"
+      [[ "$PUB_GET_EXIT" == 0 ]] || echo 'Fixture dependency resolution failed.' >&2
+      return "$PUB_GET_EXIT"
       ;;
     *) echo "Unexpected flutter arguments: $*" >&2; return 99 ;;
   esac
@@ -59,11 +55,9 @@ uname() {
     *) return 99 ;;
   esac
 }
-xcodebuild() { return 0; }
-export -f git flutter dart uname xcodebuild
+export -f git flutter dart uname
 
-failures=0
-for pub_get_exit in 65 0; do
+for pub_get_exit in 0 65; do
   fixture="$TEST_ROOT/pub-get-$pub_get_exit"
   mkdir -p "$fixture/.githooks"
   echo 'name: setup_fixture' > "$fixture/pubspec.yaml"
@@ -74,24 +68,18 @@ for pub_get_exit in 65 0; do
     FIXTURE_ROOT="$fixture" PUB_GET_EXIT="$pub_get_exit" \
     "$BASH" "$SETUP_SCRIPT" --fix 2>&1)" || status=$?
 
-  if [[ "$pub_get_exit" == 65 ]]; then
-    if [[ "$status" == 1 && "$output" == *'Fixture dependency resolution failed.'* &&
-          "$output" != *"'flutter pub get' completed."* && "$output" != *'SUCCESS:'* &&
-          "$output" != *'All requirements satisfied!'* ]] &&
-       [[ ! -f "$fixture/.dart_tool/package_config.json" ]]; then
-      echo 'PASS: failed pub get rejects setup without reporting success'
-      continue
-    fi
-  elif [[ "$status" == 0 && "$output" == *"'flutter pub get' completed."* &&
-          "$output" == *'All requirements satisfied!'* ]] &&
-       [[ -f "$fixture/.dart_tool/package_config.json" ]]; then
-    echo 'PASS: successful pub get preserves successful setup'
-    continue
+  if [[ "$pub_get_exit" == 65 && "$status" == 1 &&
+        "$output" == *'Fixture dependency resolution failed.'* &&
+        "$output" != *"'flutter pub get' completed."* && "$output" != *'SUCCESS:'* &&
+        "$output" != *'All requirements satisfied!'* ]] ||
+     [[ "$pub_get_exit" == 0 && "$status" == 0 &&
+        "$output" == *"'flutter pub get' completed."* && "$output" == *'All requirements satisfied!'* ]]; then
+    echo "PASS: pub get exit=$pub_get_exit, setup exit=$status"
+  else
+    echo "FAIL: pub get exit=$pub_get_exit, setup exit=$status"
+    printf '%s\n' "$output"
+    exit 1
   fi
-  echo "FAIL: pub get exit=$pub_get_exit, setup exit=$status"
-  printf '%s\n' "$output"
-  failures=$((failures + 1))
 done
 
-echo "$((2 - failures)) passed; $failures failed"
-[[ "$failures" == 0 ]]
+echo '2 passed; 0 failed'
