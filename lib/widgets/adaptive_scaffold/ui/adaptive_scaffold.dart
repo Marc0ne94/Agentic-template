@@ -97,7 +97,7 @@ class _AdaptiveScaffoldState extends State<AdaptiveScaffold> {
     // Wide layout (Foldable unfolded, Tablet, Desktop, Web)
     return Scaffold(
       backgroundColor: palette.canvas,
-      body: Row(
+      body: SafeArea(left: false, right: false, child: Row(
         children: [
           // Navigation Rail
           if (widget.destinations.length > 1)
@@ -207,7 +207,7 @@ class _AdaptiveScaffoldState extends State<AdaptiveScaffold> {
             ),
           ),
         ],
-      ),
+      )),
       floatingActionButton: widget.floatingActionButton,
     );
   }
