@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:agentic_template/app/app.dart';
 import 'package:agentic_template/features/github_repository/github_repository.dart';
 import 'package:agentic_template/shared/shared.dart';
@@ -5,8 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
-Future<void> _pumpApp(WidgetTester tester, Size size) async {
+Future<void> _pumpApp(WidgetTester tester, Size size, {
+  http.Client? client,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
@@ -14,10 +20,13 @@ Future<void> _pumpApp(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(ProviderScope(
     overrides: [
-      githubRepositoryProvider.overrideWith((ref) async => const GithubRepository(
-        fullName: 'Cris92bb/Agentic-template', description: 'Connected example',
-        stars: 42, pushedAt: null,
-      )),
+      if (client != null)
+        githubRepositoryClientProvider.overrideWithValue(client)
+      else
+        githubRepositoryProvider.overrideWith((ref) async => const GithubRepository(
+          fullName: 'Cris92bb/Agentic-template', description: 'Connected example',
+          stars: 42, pushedAt: null,
+        )),
     ],
     child: const AgenticApp(),
   ));
@@ -41,19 +50,34 @@ Future<void> _selectFromPopup(WidgetTester tester, String label) async {
 }
 
 void main() {
-  for (final size in [
-    const Size(390, 844),
-    const Size(720, 900),
-    const Size(1280, 800),
-    const Size(220, 220),
-  ]) {
-    testWidgets('Overview includes the GitHub example at $size', (tester) async {
-      await _pumpApp(tester, size);
-      expect(find.text('GitHub project'), findsOneWidget);
-      expect(find.text('42 stars'), findsOneWidget);
-      expect(tester.takeException(), isNull);
+  testWidgets('layout changes keep repository data until Refresh is pressed', (tester) async {
+    var requests = 0;
+    final client = MockClient((_) async {
+      requests++;
+      return http.Response(jsonEncode({
+        'full_name': 'Cris92bb/Agentic-template', 'stargazers_count': requests,
+      }), 200);
     });
-  }
+    addTearDown(client.close);
+    await _pumpApp(tester, const Size(390, 844), client: client);
+    for (final size in [
+      const Size(720, 900),
+      const Size(1280, 800),
+      const Size(220, 220),
+      const Size(390, 844),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pumpAndSettle();
+      expect(find.text('1 star'), findsOneWidget);
+      expect(requests, 1);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.ensureVisible(find.text('Refresh'));
+    await tester.tap(find.text('Refresh'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 stars'), findsOneWidget);
+    expect(requests, 2);
+  });
 
   group('HomePage smoke tests', () {
     testWidgets('phone layout has no overflow after incrementing the counter',

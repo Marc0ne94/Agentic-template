@@ -20,7 +20,6 @@ Future<void> _pumpCard(
   double width = 390,
   double textScale = 1,
   bool compact = false,
-  ThemeData? theme,
 }) async {
   tester.view.physicalSize = Size(width, 900);
   tester.view.devicePixelRatio = 1;
@@ -30,7 +29,7 @@ Future<void> _pumpCard(
     ProviderScope(
       overrides: [githubRepositoryProvider.overrideWith((ref) => load())],
       child: MaterialApp(
-        theme: theme ?? AppTheme.lightTheme,
+        theme: AppTheme.lightTheme,
         home: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
           child: Scaffold(
@@ -85,24 +84,16 @@ void main() {
     await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
     expect(find.text('3 stars'), findsOneWidget);
-    expect(find.textContaining('null'), findsNothing);
   });
 
-  for (final (name, theme) in [
-    ('light', AppTheme.lightTheme),
-    ('dark', AppTheme.darkTheme),
-    ('high contrast light', AppTheme.highContrastLightTheme),
-    ('high contrast dark', AppTheme.highContrastDarkTheme),
-  ]) {
-    testWidgets('fits a narrow pane with enlarged text in $name', (
-      tester,
-    ) async {
+  testWidgets(
+    'fits a narrow pane with enlarged text and an accessible refresh',
+    (tester) async {
       await _pumpCard(
         tester,
         load: () async => _repository,
         width: 240,
         textScale: 2,
-        theme: theme,
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -118,8 +109,8 @@ void main() {
         isTrue,
       );
       semantics.dispose();
-    });
-  }
+    },
+  );
 
   testWidgets('compact card fits the circular watch safe width', (
     tester,

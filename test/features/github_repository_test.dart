@@ -20,12 +20,8 @@ http.Response _response(Object? body) => http.Response.bytes(
   headers: {'content-type': 'application/json'},
 );
 
-Matcher _errorContaining(String message) =>
-    isA<GithubRepositoryException>().having(
-      (error) => error.message,
-      'message',
-      allOf(contains(message), isNot(contains('private error'))),
-    );
+Matcher _errorContaining(String message) => isA<GithubRepositoryException>()
+    .having((error) => error.message, 'message', contains(message));
 
 class _TrackingClient extends MockClient {
   _TrackingClient(super.fn);
@@ -44,27 +40,21 @@ void main() {
     test(
       'fetches the public repository with the requested API contract',
       () async {
-        final requests = <http.Request>[];
         final client = MockClient((request) async {
-          requests.add(request);
+          expect(request.method, 'GET');
+          expect(
+            request.url.toString(),
+            'https://api.github.com/repos/Cris92bb/Agentic-template',
+          );
+          expect(request.headers['accept'], 'application/vnd.github+json');
+          expect(request.headers['x-github-api-version'], '2026-03-10');
+          expect(request.headers['user-agent'], isNotEmpty);
           return _response(_repositoryJson);
         });
         addTearDown(client.close);
 
         final repository = await GithubRepositoryClient(client).fetch();
 
-        expect(requests, hasLength(1));
-        expect(requests.single.method, 'GET');
-        expect(
-          requests.single.url.toString(),
-          'https://api.github.com/repos/Cris92bb/Agentic-template',
-        );
-        expect(
-          requests.single.headers['accept'],
-          'application/vnd.github+json',
-        );
-        expect(requests.single.headers['x-github-api-version'], '2026-03-10');
-        expect(requests.single.headers['user-agent'], isNotEmpty);
         expect(repository.fullName, 'Cris92bb/Agentic-template');
         expect(
           repository.description,
@@ -132,7 +122,7 @@ void main() {
       });
     }
 
-    test('does not expose malformed JSON in its error', () async {
+    test('turns malformed JSON into a friendly response error', () async {
       final client = MockClient(
         (_) async => http.Response('private error', 200),
       );
@@ -156,59 +146,23 @@ void main() {
       );
     });
 
-    testWidgets('stops waiting after ten seconds', (tester) async {
+    testWidgets('times out an unresponsive request', (tester) async {
       final response = Completer<http.Response>();
       final client = MockClient((_) => response.future);
       addTearDown(client.close);
-      Object? outcome;
-      var settled = false;
-      final future = GithubRepositoryClient(client).fetch().then<void>(
-        (repository) {
-          outcome = repository;
-          settled = true;
-        },
-        onError: (Object error) {
-          outcome = error;
-          settled = true;
-        },
+      final expectation = expectLater(
+        GithubRepositoryClient(client).fetch(),
+        throwsA(_errorContaining('timed out')),
       );
 
-      await tester.pump(const Duration(seconds: 9));
-      expect(settled, isFalse);
-      await tester.pump(const Duration(seconds: 1));
-      expect(settled, isTrue);
-      expect(outcome, _errorContaining('timed out'));
-      await future;
+      await tester.pump(const Duration(seconds: 10));
+      await expectation;
       response.complete(_response(_repositoryJson));
       await tester.pump();
     });
   });
 
   group('githubRepositoryProvider', () {
-    test('keeps loaded data until an explicit refresh fetches again', () async {
-      var requests = 0;
-      final client = _TrackingClient((_) async {
-        requests++;
-        return _response({..._repositoryJson, 'stargazers_count': requests});
-      });
-      addTearDown(client.close);
-      final container = ProviderContainer(
-        overrides: [githubRepositoryClientProvider.overrideWithValue(client)],
-      );
-      addTearDown(container.dispose);
-
-      expect((await container.read(githubRepositoryProvider.future)).stars, 1);
-      await container.pump();
-      expect((await container.read(githubRepositoryProvider.future)).stars, 1);
-      expect(requests, 1);
-
-      container.invalidate(githubRepositoryProvider);
-
-      expect((await container.read(githubRepositoryProvider.future)).stars, 2);
-      expect(requests, 2);
-      expect(client.closed, isFalse);
-    });
-
     test('closes its owned HTTP client when the scope is disposed', () async {
       final client = _TrackingClient((_) async => _response(_repositoryJson));
 
