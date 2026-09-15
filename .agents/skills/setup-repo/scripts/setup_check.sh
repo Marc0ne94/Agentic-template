@@ -361,8 +361,12 @@ if [ -f "$DIR/pubspec.yaml" ]; then
     warn "Dependencies not resolved yet (.dart_tool/package_config.json missing)."
     if [ "$AUTO_FIX" = true ] && [ "$FLUTTER_OK" = true ]; then
       info "Running 'flutter pub get'..."
-      flutter pub get
-      pass "'flutter pub get' completed."
+      if flutter pub get; then
+        pass "'flutter pub get' completed."
+      else
+        fail "'flutter pub get' failed; project dependencies are not ready."
+        exit 1
+      fi
     else
       info "Run: flutter pub get"
     fi
