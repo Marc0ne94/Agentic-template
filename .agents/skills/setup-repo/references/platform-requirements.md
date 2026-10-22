@@ -31,8 +31,8 @@ The repository includes an **in-app device simulator** (`Auto Detect`, `Watch (W
 
 ### Core Tooling (All Platforms)
 - **Git**: `>= 2.20`
-- **Flutter SDK**: `>= 3.13.2` (channel `stable` recommended, CI runs `3.47.4`)
-- **Dart SDK**: bundled with Flutter (`sdk: ^3.13.2`)
+- **Flutter SDK**: `>= 3.47.7` (channel `stable` recommended, CI runs `3.47.7`)
+- **Dart SDK**: bundled with Flutter (`sdk: ^3.13.5`)
 
 ---
 

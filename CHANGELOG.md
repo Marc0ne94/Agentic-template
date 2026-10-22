@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Toolchain baseline 2026.10.1: `toolchain.json` with one shared set of versions, checked by `tool/verify_toolchain.dart` in CI and in the pre-commit hook.
+- iOS and macOS runners (`flutter create`, bundle id `com.template.agenticTemplate`).
+
+### Changed
+- Toolchain: Flutter 3.47.7 in CI, Dart `^3.13.5`, `actions/checkout@v7`, `shared_preferences` 2.5.6 with the lockfile upgraded.
+- Android: AGP 9.4.1, Kotlin 2.4.21, Gradle 9.8.2 and compileSdk 37.
+- Android: Kotlin incremental compilation disabled, as it fails on Windows when the pub cache and the project are on different drives.
+
 ## 2.0.0
 
 ### Fixed

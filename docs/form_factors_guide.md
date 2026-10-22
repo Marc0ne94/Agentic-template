@@ -5,7 +5,7 @@ This project is built from the ground up to support modern multi-device form fac
 1. **Wearable (Wear OS & Smartwatches)**
 2. **Smartphone (Portrait Compact)**
 3. **Foldable & Tablet (Unfolded Dual-Pane)**
-4. **Web & Desktop (Windows, Linux — Expanded Multi-Column)**
+4. **Web & Desktop (Windows, macOS, Linux — Expanded Multi-Column)**
 
 ---
 
