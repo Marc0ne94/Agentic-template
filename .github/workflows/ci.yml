@@ -26,5 +26,8 @@ jobs:
       - name: FSD architecture audit
         run: dart run tool/verify_fsd.dart --strict
 
+      - name: Toolchain baseline
+        run: dart run tool/verify_toolchain.dart --strict
+
       - name: Tests
         run: flutter test

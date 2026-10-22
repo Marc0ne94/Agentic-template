@@ -35,13 +35,16 @@ flutter run -d windows   # or: -d macos, -d linux, -d chrome, an Android or iOS 
 # FSD import audit (exits with an error on violations)
 dart run tool/verify_fsd.dart --strict
 
+# Toolchain baseline check against toolchain.json
+dart run tool/verify_toolchain.dart --strict
+
 # Static analysis and the full test suite
 flutter analyze
 flutter test
 ```
 CI runs the same checks on every push to `main` and on pull requests (`.github/workflows/ci.yml`).
 
-A git hooks suite is included in `.githooks/` (`pre-commit` prevents committing code on FSD, AST, or test failure; `pre-push` blocks direct pushes to `develop` and `main`, requiring Pull Requests):
+A git hooks suite is included in `.githooks/` (`pre-commit` prevents committing code on FSD, AST, test or toolchain baseline failure; `pre-push` blocks direct pushes to `develop` and `main`, requiring Pull Requests):
 ```bash
 git config core.hooksPath .githooks
 ```
@@ -144,6 +147,22 @@ This repository adheres to strict code quality and architectural guidelines:
 - **Design Token Consistency & Zero Hardcoded Colors**: No hardcoded `Color(0x...)` or random hex literals in UI files. All visual styles, borders, radii, and shadows reference `AppTokens`, `AppPalette.of(context)`, or `Theme.of(context)`.
 - **Modern Riverpod 3 State Management**: Employs Riverpod 3 `Notifier` and `NotifierProvider` primitives across feature controllers and domain entities with fallback state access for isolated unit testing.
 - **Branching & Pull Request Policy**: Direct pushes to `develop` and `main` are blocked by `.githooks/pre-push`. All changes are developed on dedicated feature branches and merged via Pull Requests after passing CI checks.
+
+---
+
+## 🧰 Toolchain Baseline
+
+`toolchain.json` is the single set of versions shared by this template and every app built on it; `tool/verify_toolchain.dart` checks a repository against it (CI and pre-commit run it with `--strict`).
+
+| Area | Baseline 2026.10.1 |
+| --- | --- |
+| Flutter / Dart | 3.47.7 / `^3.13.5` |
+| Android | AGP 9.4.1, Kotlin 2.4.21, Gradle 9.8.2, compileSdk 37, targetSdk 36, minSdk ≥ 24, Java 17, `kotlin.incremental=false` |
+| Apple | iOS 15.0, macOS 12.0 |
+| CI | `actions/checkout@v7`, `subosito/flutter-action@v2` |
+| Packages | `flutter_riverpod ^3.4.3`, `shared_preferences ^2.5.6`, `flutter_lints ^6.0.0` |
+
+To move every app forward: bump `toolchain.json` in the template first and verify it, then copy `toolchain.json` and `tool/verify_toolchain.dart` into each derived repository, fix what the tool reports and release. targetSdk stays on Flutter's default until a new target has been verified on devices.
 
 ---
 
