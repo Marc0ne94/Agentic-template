@@ -4,10 +4,10 @@ A clean, modular Flutter template designed from first principles for **AI agenti
 
 It follows **Feature-Sliced Design (FSD v2.1)**, checked automatically by an import scanner and tests, and ships responsive layouts for:
 - ⌚ **Wearable**: circular watch displays with safe insets and a glanceable UI
-- 📱 **Smartphone**: single-column layout with bottom navigation and 44×44 touch targets
+- 📱 **Smartphone (Android, iOS)**: single-column layout with bottom navigation and 44×44 touch targets
 - 📖 **Foldable / Tablet**: dual-pane layout, split along the hinge when the device reports one
 - 🌐 **Web**: WASM-GC build script and PWA manifest
-- 🖥️ **Desktop (Windows, Linux)**: navigation rail and keyboard shortcuts; on Linux a native GTK runner with theme sync, a window-control channel and a `.desktop` launcher
+- 🖥️ **Desktop (Windows, macOS, Linux)**: navigation rail and keyboard shortcuts; on Linux a native GTK runner with theme sync, a window-control channel and a `.desktop` launcher
 
 What's new in 2.0: see [CHANGELOG.md](CHANGELOG.md).
 
@@ -27,7 +27,7 @@ bash .agents/skills/setup-repo/scripts/setup_check.sh --fix
 ### 2. Run the App
 ```bash
 flutter pub get
-flutter run -d windows   # or: -d linux, -d chrome
+flutter run -d windows   # or: -d macos, -d linux, -d chrome, an Android or iOS device
 ```
 
 ### 3. Verify Architecture & Tests
@@ -50,6 +50,13 @@ git config core.hooksPath .githooks
 ```bash
 # Windows desktop bundle (Windows host)
 flutter build windows --release
+
+# macOS app and iOS archive (macOS host with Xcode)
+flutter build macos --release
+flutter build ipa --release
+
+# Android App Bundle
+flutter build appbundle --release
 
 # Linux desktop bundle (Linux host)
 bash build_release.sh linux
@@ -170,6 +177,8 @@ The suite covers the FSD auditor rules, breakpoints, settings persistence, the t
 
 - **Wear OS**: the watch layout runs inside the Android app, but publishing to Wear OS requires a watch-specific manifest (`uses-feature android.hardware.type.watch`, standalone meta-data), usually as a separate build flavor.
 - **Android release signing**: `android/app/build.gradle.kts` still signs release builds with the debug key; configure your own keystore before publishing.
+- **iOS / macOS**: building, signing and running on a device need a Mac with Xcode (set the signing Team in Xcode).
+- **Android on Windows**: `kotlin.incremental=false` in `android/gradle.properties` avoids a Kotlin compiler failure when the pub cache and the project are on different drives.
 - **Linux window control**: `WindowControlService` drag and resize rely on GTK pointer grabs, which work on X11 and are ignored by most Wayland compositors.
 
 ---

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- iOS and macOS runners (`flutter create`, bundle id `com.template.agenticTemplate`).
+
+### Changed
+- Toolchain: Flutter 3.47.7 in CI, Dart `^3.13.5`, `actions/checkout@v7`, `shared_preferences` 2.5.6 with the lockfile upgraded.
+- Android: Kotlin incremental compilation disabled, as it fails on Windows when the pub cache and the project are on different drives.
+
 ## 2.0.0
 
 ### Fixed

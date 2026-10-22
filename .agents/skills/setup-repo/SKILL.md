@@ -82,7 +82,7 @@ chmod +x .githooks/pre-commit
 ---
 
 ### Step 3: Verify Flutter & Dart SDKs
-Ensure Flutter and Dart are in PATH and satisfy SDK constraints (`sdk: ^3.13.2`):
+Ensure Flutter and Dart are in PATH and satisfy SDK constraints (`sdk: ^3.13.5`):
 ```bash
 flutter --version
 dart --version
