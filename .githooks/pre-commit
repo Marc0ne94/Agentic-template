@@ -5,6 +5,7 @@
 #   1. Feature-Sliced Design (FSD v2.1) architecture rules fail
 #   2. Dart AST / static analysis (flutter analyze) finds errors or lints
 #   3. Architecture boundary tests fail
+#   4. Toolchain settings differ from toolchain.json
 # ==============================================================================
 
 set -eo pipefail
@@ -58,6 +59,15 @@ if ! flutter test test/architecture/fsd_architecture_test.dart; then
   exit 1
 fi
 echo -e "${GREEN}✓ Architecture boundary tests passed.${NC}\n"
+
+# 4. Toolchain Baseline
+echo -e "${BOLD}4. Checking the toolchain baseline (toolchain.json)...${NC}"
+if ! dart run tool/verify_toolchain.dart --strict; then
+  echo -e "\n${RED}${BOLD}❌ Pre-commit Hook Aborted: Toolchain differs from the baseline!${NC}" >&2
+  echo -e "${YELLOW}Align the reported settings with toolchain.json, or bump the baseline in the template first.${NC}" >&2
+  exit 1
+fi
+echo -e "${GREEN}✓ Toolchain baseline matched.${NC}\n"
 
 echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BOLD}${GREEN}✅ All Pre-Commit Checks Passed! Proceeding with commit.${NC}"

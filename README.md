@@ -4,10 +4,10 @@ A clean, modular Flutter template designed from first principles for **AI agenti
 
 It follows **Feature-Sliced Design (FSD v2.1)**, checked automatically by an import scanner and tests, and ships responsive layouts for:
 - ⌚ **Wearable**: circular watch displays with safe insets and a glanceable UI
-- 📱 **Smartphone**: single-column layout with bottom navigation and 44×44 touch targets
+- 📱 **Smartphone (Android, iOS)**: single-column layout with bottom navigation and 44×44 touch targets
 - 📖 **Foldable / Tablet**: dual-pane layout, split along the hinge when the device reports one
 - 🌐 **Web**: WASM-GC build script and PWA manifest
-- 🖥️ **Desktop (Windows, Linux)**: navigation rail and keyboard shortcuts; on Linux a native GTK runner with theme sync, a window-control channel and a `.desktop` launcher
+- 🖥️ **Desktop (Windows, macOS, Linux)**: navigation rail and keyboard shortcuts; on Linux a native GTK runner with theme sync, a window-control channel and a `.desktop` launcher
 
 What's new in 2.0: see [CHANGELOG.md](CHANGELOG.md).
 
@@ -27,7 +27,7 @@ bash .agents/skills/setup-repo/scripts/setup_check.sh --fix
 ### 2. Run the App
 ```bash
 flutter pub get
-flutter run -d windows   # or: -d linux, -d chrome
+flutter run -d windows   # or: -d macos, -d linux, -d chrome, an Android or iOS device
 ```
 
 ### 3. Verify Architecture & Tests
@@ -35,13 +35,16 @@ flutter run -d windows   # or: -d linux, -d chrome
 # FSD import audit (exits with an error on violations)
 dart run tool/verify_fsd.dart --strict
 
+# Toolchain baseline check against toolchain.json
+dart run tool/verify_toolchain.dart --strict
+
 # Static analysis and the full test suite
 flutter analyze
 flutter test
 ```
 CI runs the same checks on every push to `main` and on pull requests (`.github/workflows/ci.yml`).
 
-A git hooks suite is included in `.githooks/` (`pre-commit` prevents committing code on FSD, AST, or test failure; `pre-push` blocks direct pushes to `develop` and `main`, requiring Pull Requests):
+A git hooks suite is included in `.githooks/` (`pre-commit` prevents committing code on FSD, AST, test or toolchain baseline failure; `pre-push` blocks direct pushes to `develop` and `main`, requiring Pull Requests):
 ```bash
 git config core.hooksPath .githooks
 ```
@@ -50,6 +53,13 @@ git config core.hooksPath .githooks
 ```bash
 # Windows desktop bundle (Windows host)
 flutter build windows --release
+
+# macOS app and iOS archive (macOS host with Xcode)
+flutter build macos --release
+flutter build ipa --release
+
+# Android App Bundle
+flutter build appbundle --release
 
 # Linux desktop bundle (Linux host)
 bash build_release.sh linux
@@ -140,6 +150,22 @@ This repository adheres to strict code quality and architectural guidelines:
 
 ---
 
+## 🧰 Toolchain Baseline
+
+`toolchain.json` is the single set of versions shared by this template and every app built on it; `tool/verify_toolchain.dart` checks a repository against it (CI and pre-commit run it with `--strict`).
+
+| Area | Baseline 2026.10.1 |
+| --- | --- |
+| Flutter / Dart | 3.47.7 / `^3.13.5` |
+| Android | AGP 9.4.1, Kotlin 2.4.21, Gradle 9.8.2, compileSdk 37, targetSdk 36, minSdk ≥ 24, Java 17, `kotlin.incremental=false` |
+| Apple | iOS 15.0, macOS 12.0 |
+| CI | `actions/checkout@v7`, `subosito/flutter-action@v2` |
+| Packages | `flutter_riverpod ^3.4.3`, `shared_preferences ^2.5.6`, `flutter_lints ^6.0.0` |
+
+To move every app forward: bump `toolchain.json` in the template first and verify it, then copy `toolchain.json` and `tool/verify_toolchain.dart` into each derived repository, fix what the tool reports and release. targetSdk stays on Flutter's default until a new target has been verified on devices.
+
+---
+
 ## 🤖 AI Agent Workflow
 
 AI coding agents (e.g., Claude, Gemini, GPT) working in this repository must follow:
@@ -170,6 +196,8 @@ The suite covers the FSD auditor rules, breakpoints, settings persistence, the t
 
 - **Wear OS**: the watch layout runs inside the Android app, but publishing to Wear OS requires a watch-specific manifest (`uses-feature android.hardware.type.watch`, standalone meta-data), usually as a separate build flavor.
 - **Android release signing**: `android/app/build.gradle.kts` still signs release builds with the debug key; configure your own keystore before publishing.
+- **iOS / macOS**: building, signing and running on a device need a Mac with Xcode (set the signing Team in Xcode).
+- **Android on Windows**: `kotlin.incremental=false` in `android/gradle.properties` avoids a Kotlin compiler failure when the pub cache and the project are on different drives.
 - **Linux window control**: `WindowControlService` drag and resize rely on GTK pointer grabs, which work on X11 and are ignored by most Wayland compositors.
 
 ---

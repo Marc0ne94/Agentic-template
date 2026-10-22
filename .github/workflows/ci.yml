@@ -9,12 +9,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.47.4
+          flutter-version: 3.47.7
           cache: true
 
       - name: Install dependencies
@@ -25,6 +25,9 @@ jobs:
 
       - name: FSD architecture audit
         run: dart run tool/verify_fsd.dart --strict
+
+      - name: Toolchain baseline
+        run: dart run tool/verify_toolchain.dart --strict
 
       - name: Tests
         run: flutter test

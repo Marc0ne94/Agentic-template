@@ -42,7 +42,7 @@ You MUST create a Git commit for every impactful change made to this repository.
 - Test additions or updates.
 
 ### Commit Requirements
-1. **Verification First**: Validate changes before committing (run `flutter test`, `flutter analyze`, and `dart run tool/verify_fsd.dart --strict`).
+1. **Verification First**: Validate changes before committing (run `flutter test`, `flutter analyze`, `dart run tool/verify_fsd.dart --strict` and `dart run tool/verify_toolchain.dart --strict`).
 2. **Code & Documentation Consistency**: Before committing code changes, always inspect related documentation markdown files (`README.md`, `docs/`, `.agents/rules/`). Verify that architecture trees, models, APIs, shortcuts, tokens, breakpoints, and workflows in the documentation accurately reflect the active code, and update the documentation in lockstep.
 3. **Conventional Commits Format**:
    - `feat(...)`: new features or capabilities
